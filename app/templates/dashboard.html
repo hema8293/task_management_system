@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>Dashboard</h2>
+    <ul>
+        {% for task in tasks %}
+            <li>{{ task.title }} - {% if task.completed %}Completed{% else %}Pending{% endif %}</li>
+        {% endfor %}
+    </ul>
+    <a href="{{ url_for('main.logout') }}">Logout</a>
+{% endblock %}
