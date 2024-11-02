@@ -20,10 +20,11 @@ class TaskManagementTestCase(unittest.TestCase):
             db.drop_all()
 
     def login_user(self):
-        return self.client.post('/login', data={
+        response = self.client.post('/login', data={
             'username': 'testuser',
             'password': 'testpassword'
         }, follow_redirects=True)
+        return response
 
     def test_user_registration(self):
         response = self.client.post('/register', data={
