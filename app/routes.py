@@ -1,6 +1,5 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, send_from_directory
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, current_user, logout_user, login_required
-import os
 from .forms import RegistrationForm, LoginForm
 
 main_blueprint = Blueprint('main', __name__)
@@ -15,8 +14,8 @@ def register():
         return redirect(url_for('main.dashboard'))
     form = RegistrationForm()
     if form.validate_on_submit():
-        from . import db  # Import db within the function to avoid circular import
-        from .models import User  # Import User model within the function
+        from . import db
+        from .models import User
         user = User(username=form.username.data, password=form.password.data)
         db.session.add(user)
         db.session.commit()
@@ -30,9 +29,9 @@ def login():
         return redirect(url_for('main.dashboard'))
     form = LoginForm()
     if form.validate_on_submit():
-        from .models import User  # Import User model within the function
+        from .models import User
         user = User.query.filter_by(username=form.username.data).first()
-        if user and user.password == form.password.data:  # Replace with hashed password checking for production
+        if user and user.password == form.password.data:
             login_user(user, remember=form.remember.data)
             flash('You have been logged in!', 'success')
             return redirect(url_for('main.dashboard'))
@@ -48,16 +47,16 @@ def logout():
 @main_blueprint.route('/dashboard')
 @login_required
 def dashboard():
-    from .models import Task  # Import Task model within the function
+    from .models import Task
     tasks = Task.query.filter_by(user_id=current_user.id).all()
     return render_template('dashboard.html', tasks=tasks)
 
 @main_blueprint.route('/favicon.ico')
 def favicon():
-    """Serve the favicon when requested by the browser"""
+    from flask import send_from_directory
+    import os
     return send_from_directory(
         os.path.join(main_blueprint.root_path, 'static'),
         'favicon.ico',
         mimetype='image/vnd.microsoft.icon'
     )
-
