@@ -24,7 +24,7 @@ class TaskManagementTestCase(unittest.TestCase):
             'username': 'testuser',
             'password': 'testpassword'
         }, follow_redirects=True)
-        return response
+        self.assertIn(b'You have been logged in!', response.data)
 
     def test_user_registration(self):
         response = self.client.post('/register', data={
