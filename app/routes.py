@@ -39,6 +39,7 @@ def login():
     return render_template('login.html', form=form)
 
 @main_blueprint.route('/logout')
+@login_required
 def logout():
     logout_user()
     flash('You have been logged out.', 'info')
@@ -88,6 +89,14 @@ def delete_task(task_id):
     db.session.commit()
     flash('Task deleted successfully!', 'success')
     return redirect(url_for('main.dashboard'))
+
+@main_blueprint.route('/report')
+@login_required
+def report():
+    total_tasks = Task.query.filter_by(user_id=current_user.id).count()
+    completed_tasks = Task.query.filter_by(user_id=current_user.id, completed=True).count()
+    pending_tasks = total_tasks - completed_tasks
+    return render_template('report.html', total=total_tasks, completed=completed_tasks, pending=pending_tasks)
 
 @main_blueprint.route('/favicon.ico')
 def favicon():
