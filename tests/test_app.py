@@ -20,6 +20,7 @@ class TaskManagementTestCase(unittest.TestCase):
             db.drop_all()
 
     def login_user(self):
+        """Helper method to log in the test user"""
         response = self.client.post('/login', data={
             'username': 'testuser',
             'password': 'testpassword'
@@ -27,6 +28,7 @@ class TaskManagementTestCase(unittest.TestCase):
         self.assertIn(b'You have been logged in!', response.data)
 
     def test_user_registration(self):
+        """Test user registration"""
         response = self.client.post('/register', data={
             'username': 'newuser',
             'password': 'newpassword',
@@ -34,17 +36,27 @@ class TaskManagementTestCase(unittest.TestCase):
         }, follow_redirects=True)
         self.assertIn(b'Your account has been created!', response.data)
 
+    def test_user_login(self):
+        """Test user login"""
+        response = self.client.post('/login', data={
+            'username': 'testuser',
+            'password': 'testpassword'
+        }, follow_redirects=True)
+        self.assertIn(b'You have been logged in!', response.data)
+
     def test_create_task(self):
+        """Test task creation by logged-in user"""
         self.login_user()
         response = self.client.post('/create_task', data={
-            'title': 'New Task'
+            'title': 'Test Task'
         }, follow_redirects=True)
         self.assertIn(b'Task created successfully!', response.data)
 
     def test_complete_task(self):
+        """Test marking a task as complete"""
         with self.app.app_context():
             user = User.query.filter_by(username='testuser').first()
-            task = Task(title='Complete this task', user_id=user.id)
+            task = Task(title='Complete Task', user_id=user.id)
             db.session.add(task)
             db.session.commit()
 
@@ -53,9 +65,10 @@ class TaskManagementTestCase(unittest.TestCase):
         self.assertIn(b'Task marked as complete!', response.data)
 
     def test_delete_task(self):
+        """Test deleting a task"""
         with self.app.app_context():
             user = User.query.filter_by(username='testuser').first()
-            task = Task(title='Delete this task', user_id=user.id)
+            task = Task(title='Delete Task', user_id=user.id)
             db.session.add(task)
             db.session.commit()
 
@@ -64,6 +77,7 @@ class TaskManagementTestCase(unittest.TestCase):
         self.assertIn(b'Task deleted successfully!', response.data)
 
     def test_create_task_missing_title(self):
+        """Test task creation with missing title"""
         self.login_user()
         response = self.client.post('/create_task', data={
             'title': ''
@@ -71,6 +85,7 @@ class TaskManagementTestCase(unittest.TestCase):
         self.assertIn(b'Title is required to create a task.', response.data)
 
     def test_unauthorized_task_completion(self):
+        """Test marking a task as complete by an unauthorized user"""
         with self.app.app_context():
             another_user = User(username='anotheruser', password='anotherpassword')
             db.session.add(another_user)
