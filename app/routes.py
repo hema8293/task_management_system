@@ -41,6 +41,7 @@ def login():
 @main_blueprint.route('/logout')
 def logout():
     logout_user()
+    flash('You have been logged out.', 'info')
     return redirect(url_for('main.login'))
 
 @main_blueprint.route('/dashboard')
@@ -54,41 +55,39 @@ def dashboard():
 def create_task():
     if request.method == 'POST':
         title = request.form.get('title')
-        if title:
-            task = Task(title=title, user_id=current_user.id)
-            db.session.add(task)
-            db.session.commit()
-            flash('Task created successfully!', 'success')
-            return redirect(url_for('main.dashboard'))
-        else:
+        if not title:
             flash('Title is required to create a task.', 'danger')
+            return redirect(url_for('main.create_task'))
+        task = Task(title=title, user_id=current_user.id)
+        db.session.add(task)
+        db.session.commit()
+        flash('Task created successfully!', 'success')
+        return redirect(url_for('main.dashboard'))
     return render_template('create_task.html')
 
 @main_blueprint.route('/complete_task/<int:task_id>', methods=['POST'])
 @login_required
 def complete_task(task_id):
     task = Task.query.get_or_404(task_id)
-    if task.owner.id == current_user.id:
-        task.completed = True
-        db.session.commit()
-        flash('Task marked as complete!', 'success')
-        return redirect(url_for('main.dashboard'))
-    else:
+    if task.owner.id != current_user.id:
         flash('Unauthorized action.', 'danger')
         return redirect(url_for('main.dashboard'))
+    task.completed = True
+    db.session.commit()
+    flash('Task marked as complete!', 'success')
+    return redirect(url_for('main.dashboard'))
 
 @main_blueprint.route('/delete_task/<int:task_id>', methods=['POST'])
 @login_required
 def delete_task(task_id):
     task = Task.query.get_or_404(task_id)
-    if task.owner.id == current_user.id:
-        db.session.delete(task)
-        db.session.commit()
-        flash('Task deleted successfully!', 'success')
-        return redirect(url_for('main.dashboard'))
-    else:
+    if task.owner.id != current_user.id:
         flash('Unauthorized action.', 'danger')
         return redirect(url_for('main.dashboard'))
+    db.session.delete(task)
+    db.session.commit()
+    flash('Task deleted successfully!', 'success')
+    return redirect(url_for('main.dashboard'))
 
 @main_blueprint.route('/favicon.ico')
 def favicon():
