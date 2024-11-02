@@ -15,14 +15,30 @@ class TaskManagementTestCase(unittest.TestCase):
         with self.app.app_context():
             db.drop_all()
 
-    # Failing test for task creation
-    def test_create_task(self):
-        response = self.client.post('/create_task', data={
-            'title': 'New Task'
+    def test_user_registration(self):
+        response = self.client.post('/register', data={
+            'username': 'testuser',
+            'password': 'testpassword',
+            'confirm_password': 'testpassword'
         }, follow_redirects=True)
-        self.assertIn(b'Task created successfully!', response.data)
+        self.assertIn(b'Your account has been created!', response.data)
 
-    # Failing test for task completion
+    def test_create_task(self):
+        with self.app.app_context():
+            user = User(username='testuser', password='testpassword')
+            db.session.add(user)
+            db.session.commit()
+
+        with self.client:
+            self.client.post('/login', data={
+                'username': 'testuser',
+                'password': 'testpassword'
+            }, follow_redirects=True)
+            response = self.client.post('/create_task', data={
+                'title': 'New Task'
+            }, follow_redirects=True)
+            self.assertIn(b'Task created successfully!', response.data)
+
     def test_complete_task(self):
         with self.app.app_context():
             user = User(username='testuser', password='testpassword')
@@ -31,11 +47,15 @@ class TaskManagementTestCase(unittest.TestCase):
             task = Task(title='Test Task', user_id=user.id)
             db.session.add(task)
             db.session.commit()
-        
-        response = self.client.post('/complete_task/1', follow_redirects=True)
-        self.assertIn(b'Task marked as complete!', response.data)
 
-    # Failing test for task deletion
+        with self.client:
+            self.client.post('/login', data={
+                'username': 'testuser',
+                'password': 'testpassword'
+            }, follow_redirects=True)
+            response = self.client.post('/complete_task/1', follow_redirects=True)
+            self.assertIn(b'Task marked as complete!', response.data)
+
     def test_delete_task(self):
         with self.app.app_context():
             user = User(username='testuser', password='testpassword')
@@ -44,9 +64,42 @@ class TaskManagementTestCase(unittest.TestCase):
             task = Task(title='Test Task', user_id=user.id)
             db.session.add(task)
             db.session.commit()
-        
-        response = self.client.post('/delete_task/1', follow_redirects=True)
-        self.assertIn(b'Task deleted successfully!', response.data)
+
+        with self.client:
+            self.client.post('/login', data={
+                'username': 'testuser',
+                'password': 'testpassword'
+            }, follow_redirects=True)
+            response = self.client.post('/delete_task/1', follow_redirects=True)
+            self.assertIn(b'Task deleted successfully!', response.data)
+
+    def test_create_task_missing_title(self):
+        with self.client:
+            self.client.post('/login', data={
+                'username': 'testuser',
+                'password': 'testpassword'
+            }, follow_redirects=True)
+            response = self.client.post('/create_task', data={
+                'title': ''
+            }, follow_redirects=True)
+            self.assertIn(b'Title is required to create a task.', response.data)
+
+    def test_unauthorized_task_completion(self):
+        with self.app.app_context():
+            another_user = User(username='anotheruser', password='anotherpassword')
+            db.session.add(another_user)
+            db.session.commit()
+            task = Task(title='Another User Task', user_id=another_user.id)
+            db.session.add(task)
+            db.session.commit()
+
+        with self.client:
+            self.client.post('/login', data={
+                'username': 'testuser',
+                'password': 'testpassword'
+            }, follow_redirects=True)
+            response = self.client.post('/complete_task/1', follow_redirects=True)
+            self.assertIn(b'Unauthorized action.', response.data)
 
 if __name__ == '__main__':
     unittest.main()
