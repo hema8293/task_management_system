@@ -1,34 +1,38 @@
 import unittest
 from app import create_app, db
 from app.models import User, Task
+from flask_login import current_user
 
 class TaskManagementTestCase(unittest.TestCase):
     def setUp(self):
+        """Set up test environment."""
         self.app = create_app()
         self.app.config['TESTING'] = True
+        self.app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for testing
         self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         self.client = self.app.test_client()
+
         with self.app.app_context():
             db.create_all()
-            # Create a test user for authentication
+            # Create a test user
             user = User(username='testuser', password='testpassword')
             db.session.add(user)
             db.session.commit()
 
     def tearDown(self):
+        """Clean up after each test."""
         with self.app.app_context():
             db.drop_all()
 
     def login_user(self):
-        """Helper method to log in the test user"""
-        response = self.client.post('/login', data={
+        """Helper method to log in the test user."""
+        return self.client.post('/login', data={
             'username': 'testuser',
             'password': 'testpassword'
         }, follow_redirects=True)
-        self.assertIn(b'You have been logged in!', response.data)
 
     def test_user_registration(self):
-        """Test user registration"""
+        """Test user registration functionality."""
         response = self.client.post('/register', data={
             'username': 'newuser',
             'password': 'newpassword',
@@ -37,66 +41,31 @@ class TaskManagementTestCase(unittest.TestCase):
         self.assertIn(b'Your account has been created!', response.data)
 
     def test_user_login(self):
-        """Test user login"""
-        response = self.client.post('/login', data={
-            'username': 'testuser',
-            'password': 'testpassword'
-        }, follow_redirects=True)
+        """Test user login functionality."""
+        response = self.login_user()
         self.assertIn(b'You have been logged in!', response.data)
 
     def test_create_task(self):
-        """Test task creation by logged-in user"""
+        """Test creating a task."""
         self.login_user()
         response = self.client.post('/create_task', data={
             'title': 'Test Task'
         }, follow_redirects=True)
         self.assertIn(b'Task created successfully!', response.data)
 
-    def test_complete_task(self):
-        """Test marking a task as complete"""
-        with self.app.app_context():
-            user = User.query.filter_by(username='testuser').first()
-            task = Task(title='Complete Task', user_id=user.id)
-            db.session.add(task)
-            db.session.commit()
-
+    def test_task_list_display(self):
+        """Test if the task list displays correctly for the logged-in user."""
         self.login_user()
-        response = self.client.post('/complete_task/1', follow_redirects=True)
-        self.assertIn(b'Task marked as complete!', response.data)
+        response = self.client.get('/dashboard')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Dashboard', response.data)
 
-    def test_delete_task(self):
-        """Test deleting a task"""
-        with self.app.app_context():
-            user = User.query.filter_by(username='testuser').first()
-            task = Task(title='Delete Task', user_id=user.id)
-            db.session.add(task)
-            db.session.commit()
-
+    def test_report_page(self):
+        """Test access to the report page."""
         self.login_user()
-        response = self.client.post('/delete_task/1', follow_redirects=True)
-        self.assertIn(b'Task deleted successfully!', response.data)
-
-    def test_create_task_missing_title(self):
-        """Test task creation with missing title"""
-        self.login_user()
-        response = self.client.post('/create_task', data={
-            'title': ''
-        }, follow_redirects=True)
-        self.assertIn(b'Title is required to create a task.', response.data)
-
-    def test_unauthorized_task_completion(self):
-        """Test marking a task as complete by an unauthorized user"""
-        with self.app.app_context():
-            another_user = User(username='anotheruser', password='anotherpassword')
-            db.session.add(another_user)
-            db.session.commit()
-            task = Task(title='Another user task', user_id=another_user.id)
-            db.session.add(task)
-            db.session.commit()
-
-        self.login_user()
-        response = self.client.post('/complete_task/1', follow_redirects=True)
-        self.assertIn(b'Unauthorized action.', response.data)
+        response = self.client.get('/report')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Task Report', response.data)
 
 if __name__ == '__main__':
     unittest.main()

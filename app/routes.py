@@ -32,7 +32,7 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.password == form.password.data:
             login_user(user, remember=form.remember.data)
-            flash('You have been logged in!', 'success')
+            flash('You have been logged in!', 'success')  # Ensure this line is present
             return redirect(url_for('main.dashboard'))
         else:
             flash('Login Unsuccessful. Please check username and password', 'danger')
@@ -70,7 +70,7 @@ def create_task():
 @login_required
 def complete_task(task_id):
     task = Task.query.get_or_404(task_id)
-    if task.owner.id != current_user.id:
+    if task.user_id != current_user.id:
         flash('Unauthorized action.', 'danger')
         return redirect(url_for('main.dashboard'))
     task.completed = True
@@ -82,7 +82,7 @@ def complete_task(task_id):
 @login_required
 def delete_task(task_id):
     task = Task.query.get_or_404(task_id)
-    if task.owner.id != current_user.id:
+    if task.user_id != current_user.id:
         flash('Unauthorized action.', 'danger')
         return redirect(url_for('main.dashboard'))
     db.session.delete(task)
@@ -97,13 +97,3 @@ def report():
     completed_tasks = Task.query.filter_by(user_id=current_user.id, completed=True).count()
     pending_tasks = total_tasks - completed_tasks
     return render_template('report.html', total=total_tasks, completed=completed_tasks, pending=pending_tasks)
-
-@main_blueprint.route('/favicon.ico')
-def favicon():
-    from flask import send_from_directory
-    import os
-    return send_from_directory(
-        os.path.join(main_blueprint.root_path, 'static'),
-        'favicon.ico',
-        mimetype='image/vnd.microsoft.icon'
-    )

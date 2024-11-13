@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Report</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('main.logout') }}">Logout</a>
+    </nav>
+
+    <div class="container">
+        <h1>Task Report</h1>
+        <p>Total Tasks: {{ total }}</p>
+        <p>Completed Tasks: {{ completed }}</p>
+        <p>Pending Tasks: {{ pending }}</p>
+    </div>
+
+    <footer>
+        <p>&copy; {{ current_year | default('2024') }} Task Management System. All rights reserved.</p>
+    </footer>
+</body>
+</html>
